@@ -77,10 +77,9 @@ As a rough guide, an M1 with 16 GB handles about 8 minutes of audio in ~5 minute
 ├── run.sh / setup.sh
 ├── videos/              INPUT: put recordings here
 ├── output/              OUTPUT
-│   ├── <video name>/
-│   │   ├── transcript.txt     readable transcript
-│   │   └── transcript.json    same, with start/end times per turn
-│   └── all_transcripts.txt    every transcript combined
+│   └── <video name>/        one folder per video, kept separate
+│       ├── transcript.txt     readable transcript
+│       └── transcript.json    same, with start/end times per turn
 ├── .cache/              extracted audio + intermediate results (safe to delete)
 └── asr-env/             Python, packages, models (created by setup.sh)
 ```

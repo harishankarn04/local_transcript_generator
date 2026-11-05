@@ -17,7 +17,6 @@ Settings live in config.py. Run through ./run.sh:
 Output:
     output/<video>/transcript.txt     readable transcript
     output/<video>/transcript.json    same, with timestamps per turn
-    output/all_transcripts.txt        every transcript in one file
 """
 import argparse
 import hashlib
@@ -173,16 +172,6 @@ def write_outputs(stem, turns, out_dir):
     return txt
 
 
-def write_combined(output_root):
-    parts = [f"===== {d.name} =====\n\n{(d / 'transcript.txt').read_text()}"
-             for d in sorted(output_root.iterdir())
-             if d.is_dir() and (d / "transcript.txt").exists()]
-    if len(parts) > 1:
-        combined = output_root / "all_transcripts.txt"
-        combined.write_text("\n\n".join(parts))
-        log(f"combined transcript: {combined}")
-
-
 def print_speaker_summary(stem, turns):
     stats = {}
     for t in turns:
@@ -238,7 +227,6 @@ def main():
         log(f"wrote {txt}")
         print_speaker_summary(stem, turns)
 
-    write_combined(output_root)
     log("all done")
 
 
