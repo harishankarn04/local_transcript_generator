@@ -21,6 +21,7 @@ Output:
 import argparse
 import hashlib
 import json
+import platform
 import subprocess
 import sys
 import time
@@ -70,20 +71,64 @@ def extract_audio(video, wav):
         check=True)
 
 
-def transcribe(audio, cache, force):
-    if cache.exists() and not force:
-        log("transcription: using cache")
-        return json.loads(cache.read_text())
+def resolve_backend():
+    """Pick the speech-to-text engine: MLX on Apple Silicon, faster-whisper elsewhere."""
+    if config.BACKEND != "auto":
+        return config.BACKEND
+    on_apple_silicon = sys.platform == "darwin" and platform.machine() == "arm64"
+    return "mlx" if on_apple_silicon else "faster-whisper"
+
+
+def whisper_model_name():
+    return (config.WHISPER_MODEL_MLX if resolve_backend() == "mlx"
+            else config.WHISPER_MODEL_FASTER)
+
+
+def torch_device():
+    """Best available accelerator for the PyTorch parts (speaker detection)."""
+    import torch
+    if torch.cuda.is_available():
+        return "cuda"
+    if getattr(torch.backends, "mps", None) and torch.backends.mps.is_available():
+        return "mps"
+    return "cpu"
+
+
+def transcribe_mlx(audio):
     import mlx_whisper
-    log(f"transcribing with {config.WHISPER_MODEL} ...")
-    result = mlx_whisper.transcribe(
+    return mlx_whisper.transcribe(
         audio,
-        path_or_hf_repo=config.WHISPER_MODEL,
+        path_or_hf_repo=config.WHISPER_MODEL_MLX,
         language=config.LANGUAGE,
         initial_prompt=config.INITIAL_PROMPT or None,
         condition_on_previous_text=False,
         word_timestamps=False,
     )
+
+
+def transcribe_faster_whisper(audio):
+    from faster_whisper import WhisperModel
+    device = "cuda" if torch_device() == "cuda" else "cpu"
+    model = WhisperModel(config.WHISPER_MODEL_FASTER, device=device,
+                         compute_type="float16" if device == "cuda" else "int8")
+    segments, _ = model.transcribe(
+        audio,
+        language=config.LANGUAGE,
+        initial_prompt=config.INITIAL_PROMPT or None,
+        condition_on_previous_text=False,
+    )
+    return {"segments": [{"start": s.start, "end": s.end, "text": s.text}
+                         for s in segments]}
+
+
+def transcribe(audio, cache, force):
+    if cache.exists() and not force:
+        log("transcription: using cache")
+        return json.loads(cache.read_text())
+    backend = resolve_backend()
+    log(f"transcribing with {whisper_model_name()} ({backend}) ...")
+    result = (transcribe_mlx(audio) if backend == "mlx"
+              else transcribe_faster_whisper(audio))
     cache.write_text(json.dumps(result))
     log("transcription done")
     return result
@@ -111,11 +156,14 @@ def diarize(audio, cache, force):
     kwargs = ({"num_speakers": config.NUM_SPEAKERS} if config.NUM_SPEAKERS
               else {"min_speakers": config.MIN_SPEAKERS, "max_speakers": config.MAX_SPEAKERS})
     inp = {"waveform": torch.from_numpy(audio)[None], "sample_rate": 16000}
+    device = torch_device()
     try:
-        pipe.to(torch.device("mps"))
+        pipe.to(torch.device(device))
         out = pipe(inp, **kwargs)
     except Exception as e:  # the GPU can run out of memory on long files
-        log(f"GPU diarization failed ({type(e).__name__}), retrying on CPU")
+        if device == "cpu":
+            raise
+        log(f"{device} diarization failed ({type(e).__name__}), retrying on CPU")
         pipe.to(torch.device("cpu"))
         out = pipe(inp, **kwargs)
     ann = getattr(out, "speaker_diarization", out)
@@ -202,7 +250,7 @@ def main():
         sys.exit(f"No videos found in '{config.INPUT_DIR}/'. Put videos there or pass file names.")
 
     import soundfile as sf
-    asr_key = short_hash(config.WHISPER_MODEL, config.LANGUAGE, config.INITIAL_PROMPT)
+    asr_key = short_hash(whisper_model_name(), config.LANGUAGE, config.INITIAL_PROMPT)
     diar_key = short_hash(config.DIARIZATION_MODEL, config.MIN_SPEAKERS,
                           config.MAX_SPEAKERS, config.NUM_SPEAKERS)
     output_root = Path(config.OUTPUT_DIR)

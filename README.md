@@ -1,6 +1,6 @@
 # Local Transcript Generator
 
-Turn video or audio recordings into **speaker-labelled transcripts**, entirely on your own Mac. No cloud transcription service: after the one-time model download, nothing leaves your machine.
+Turn video or audio recordings into **speaker-labelled transcripts**, entirely on your own computer (macOS on Apple Silicon, or Linux). No cloud transcription service: after the one-time model download, nothing leaves your machine.
 
 ```
 [00:00:02] Interviewer: Welcome to the show. Could you tell us about your background?
@@ -12,7 +12,7 @@ It chains three open-source tools:
 
 | Step | Tool | Job |
 |---|---|---|
-| Speech to text | [mlx-whisper](https://github.com/ml-explore/mlx-examples) (Whisper large-v3) | Runs on the Apple GPU |
+| Speech to text | Whisper large-v3 via [mlx-whisper](https://github.com/ml-explore/mlx-examples) (Apple Silicon) or [faster-whisper](https://github.com/SYSTRAN/faster-whisper) (Linux) | Chosen automatically for your machine |
 | Word timing | [WhisperX](https://github.com/m-bain/whisperX) | Aligns each word to the audio |
 | Who is speaking | [pyannote.audio](https://github.com/pyannote/pyannote-audio) (`speaker-diarization-community-1`) | Splits the audio into speakers |
 
@@ -20,10 +20,17 @@ The result is merged into turns, and you can replace the generic `SPEAKER_00`, `
 
 ## Requirements
 
-- A Mac with **Apple Silicon** (M1 or newer), macOS 13+. Developed and tested on an M1 with 16 GB RAM.
+- **One of these platforms** (`./setup.sh` detects which and installs the right packages):
+
+  | Platform | Speech engine | Notes |
+  |---|---|---|
+  | macOS, Apple Silicon (M1 or newer), macOS 13+ | MLX on the Apple GPU | Developed and tested on an M1 with 16 GB RAM |
+  | Linux (x86_64 or arm64) | faster-whisper | Uses an NVIDIA GPU if `nvidia-smi` works, otherwise the CPU (much slower). **Not yet tested** |
+
+  Intel Macs and Windows are not supported.
 - **~10 GB of free disk space** for Python packages and models (all kept inside the project folder).
-- [Homebrew](https://brew.sh) and **ffmpeg**: `brew install ffmpeg`
-- Python 3 on your PATH (only used to bootstrap; the project installs its own Python 3.12).
+- **ffmpeg**: `brew install ffmpeg` on macOS, `sudo apt install ffmpeg` (or your distribution's equivalent) on Linux.
+- Python 3 on your PATH (only used to bootstrap; the project installs its own Python 3.12). On Debian/Ubuntu you may also need `sudo apt install python3-venv`.
 - A free **[Hugging Face](https://huggingface.co) account**. The speaker-detection model is free but gated, so you must accept its terms once (see below).
 
 ## Setup (one time)
@@ -51,7 +58,7 @@ Go to <https://huggingface.co/settings/tokens>, create a token of type **Read**,
 ./setup.sh
 ```
 
-It creates a self-contained environment in `asr-env/`, installs the packages, downloads the models (several GB, first time only), and asks for your Hugging Face token. Type or paste it when prompted; it is stored only inside `asr-env/` and is never committed. It is safe to re-run if something is interrupted.
+It detects your platform, creates a self-contained environment in `asr-env/`, installs the packages (`requirements.txt` for everything, plus `requirements-mac.txt` on Apple Silicon), downloads the models (several GB, first time only), and asks for your Hugging Face token. Type or paste it when prompted; it is stored only inside `asr-env/` and is never committed. It is safe to re-run if something is interrupted.
 
 To uninstall, delete the project folder.
 

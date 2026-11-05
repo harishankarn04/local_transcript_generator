@@ -1,0 +1,3 @@
+# Extra packages for Apple Silicon Macs only (Whisper on the Apple GPU via MLX).
+# Installed by setup.sh in addition to requirements.txt.
+mlx-whisper==0.4.3

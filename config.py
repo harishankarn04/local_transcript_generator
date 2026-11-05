@@ -13,8 +13,14 @@ CACHE_DIR = ".cache"       # extracted audio + intermediate results (safe to del
 VIDEO_EXTS = {".mov", ".mp4", ".m4v", ".mkv", ".avi", ".wav", ".mp3", ".m4a"}
 
 # --- speech to text ----------------------------------------------------------
-WHISPER_MODEL = "mlx-community/whisper-large-v3-mlx"
-# Faster, slightly less accurate: "mlx-community/whisper-large-v3-turbo"
+# BACKEND: "auto" picks the best engine for the machine:
+#   "mlx"            Apple Silicon Mac (runs on the Apple GPU)
+#   "faster-whisper" Linux (NVIDIA GPU if present, otherwise CPU)
+BACKEND = "auto"
+# Whisper model for each backend. Faster, slightly less accurate options:
+#   mlx: "mlx-community/whisper-large-v3-turbo"    faster-whisper: "large-v3-turbo"
+WHISPER_MODEL_MLX = "mlx-community/whisper-large-v3-mlx"
+WHISPER_MODEL_FASTER = "large-v3"
 LANGUAGE = "en"
 
 # Words Whisper tends to get wrong: names, places, jargon, slang.
