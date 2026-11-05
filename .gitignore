@@ -1,0 +1,35 @@
+# Your videos and the transcripts generated from them (private, large)
+# (the folders are kept via .gitkeep; their contents are never committed)
+videos/*
+output/*
+!videos/.gitkeep
+!output/.gitkeep
+
+# Extracted audio and intermediate results
+.cache/
+
+# Installed Python, packages and downloaded models (recreated by ./setup.sh)
+asr-env/
+
+# Personal settings
+config_local.py
+
+# Secrets (the Hugging Face token lives inside asr-env/, but just in case)
+.env
+*.token
+
+# Python / macOS noise
+__pycache__/
+*.pyc
+.DS_Store
+
+# Any video or audio dropped elsewhere in the repo
+*.mov
+*.MOV
+*.mp4
+*.m4v
+*.mkv
+*.avi
+*.wav
+*.mp3
+*.m4a

@@ -1,0 +1,8 @@
+# Tested on macOS (Apple Silicon M1), Python 3.12
+whisperx==3.8.6
+mlx-whisper==0.4.3
+pyannote-audio==4.0.7
+torch==2.8.0
+torchaudio==2.8.0
+soundfile==0.14.0
+huggingface_hub
